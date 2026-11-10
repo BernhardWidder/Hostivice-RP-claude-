@@ -18,16 +18,31 @@ Stažená data ukládejte do `tools/gis/data/` (je v `.gitignore`).
 
 ## 2. Heightmapa
 
+Doporučená cesta, bez registrace a bez GDAL:
+
 ```bash
-cd tools/gis
-./export_heightmap.sh data/dmr5g_*.tif
+pip install rasterio pyproj numpy pillow
+python3 tools/gis/fetch_cuzk.py
 ```
 
-Skript udělá reprojekci, ořez na 8129 × 8129 m, export 16bit PNG a vypíše
-parametry pro UE do `out/landscape_params.txt`.
+Skript stáhne DMR 5G a DMP 1G z veřejné služby ČÚZK (ArcGIS ImageServer),
+převede je do UTM 33N a do `tools/gis/out/` uloží:
 
-Souřadnice středu ve skriptu jsou přibližné. Před prvním exportem je ověřte
-v QGIS nad ortofotem (proměnné `CENTER_LON`, `CENTER_LAT`).
+| Soubor | Obsah |
+|---|---|
+| `hostivice_height.png` | 16bit heightmapa terénu, 8129 × 8129 px, 1 m/px |
+| `hostivice_objects.tif` | výška budov a stromů nad terénem (DMP − DMR) v metrech |
+| `hostivice_hillshade.png` | stínovaný náhled pro kontrolu |
+| `landscape_params.txt` | Scale Z, Location Z a počátek světa pro UE |
+
+Služba má nativní krok 2 m, výstup 1 m/px je převzorkovaný. Pro terén to
+stačí; ostré hrany (náspy trati, hráze rybníků) se doladí ručně v editoru.
+
+Střed výřezu se mění parametry `--lon` a `--lat`. Výchozí hodnota je
+přibližná poloha Husova náměstí – ověřte ji nad ortofotem.
+
+Alternativa pro vlastní GeoTIFFy stažené z Geoportálu: `export_heightmap.sh`
+(vyžaduje GDAL).
 
 ## 3. Import do UE5
 
@@ -43,8 +58,8 @@ v QGIS nad ortofotem (proměnné `CENTER_LON`, `CENTER_LAT`).
 
 1. Blosm: import budov a silnic pro stejný výřez.
 2. Půdorysy nahradit nebo zpřesnit podle RÚIAN (import GeoJSON/SHP v UTM 33N).
-3. Výška budovy = medián (DMP 1G − DMR 5G) uvnitř půdorysu. Spočítá QGIS
-   nástroj *Zonal Statistics*; výsledek se uloží jako atribut `height`.
+3. Výška budovy = medián rastru `hostivice_objects.tif` uvnitř půdorysu. Spočítá
+   QGIS nástroj *Zonal Statistics*; výsledek se uloží jako atribut `height`.
 4. Extrude podle `height`. Origin scény = počátek světa z kroku 2.
 5. Export FBX po blocích zhruba 250 × 250 m, v UE zapnout Nanite.
 
