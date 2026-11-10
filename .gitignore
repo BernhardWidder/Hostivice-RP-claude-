@@ -1,0 +1,18 @@
+# Unreal Engine
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+Build/
+.vs/
+.idea/
+*.sln
+*.suo
+*.xcworkspace
+*.VC.db
+*.opensdf
+*.sdf
+
+# GIS zdrojová data (stahují se z ČÚZK, do repozitáře nepatří)
+tools/gis/data/
+tools/gis/out/
