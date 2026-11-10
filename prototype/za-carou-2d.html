@@ -44,8 +44,8 @@ p { margin: 0; max-width: 65ch; }
   font-family: var(--display); font-weight: 700; font-size: 1rem; letter-spacing: .12em;
   border: 2px solid #14161a; outline: 1px solid var(--spz);
 }
-.spz b { background: var(--spz-modra); color: #fff; font-size: .62rem; letter-spacing: .04em; padding: 0 5px; display: flex; align-items: flex-end; padding-bottom: 3px; }
-.spz span { padding: 1px 10px 0; }
+.spz b { background: var(--spz-modra); color: #fff; font-size: .72rem; letter-spacing: .04em; padding: 0 6px; display: flex; align-items: flex-end; padding-bottom: 4px; }
+.spz span { padding: 4px 12px 3px; }
 
 .hlava { display: flex; flex-direction: column; gap: 12px; }
 .hlava p { font-size: 1.08rem; }
@@ -62,7 +62,7 @@ section { display: flex; flex-direction: column; gap: 16px; }
 .hud { position: absolute; inset: 0; pointer-events: none; font-family: var(--display); }
 .hud-l, .hud-r { position: absolute; top: 10px; display: flex; flex-direction: column; gap: 6px; }
 .hud-l { left: 10px; } .hud-r { right: 10px; align-items: flex-end; }
-.stitek { background: rgba(16,19,26,.78); border: 1px solid rgba(255,255,255,.14); border-radius: 4px; padding: 2px 9px; font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .03em; }
+.stitek { background: rgba(16,19,26,.78); border: 1px solid rgba(255,255,255,.14); border-radius: 4px; padding: 4px 10px; font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .03em; }
 .zdravi { width: 104px; height: 9px; background: rgba(16,19,26,.78); border: 1px solid rgba(255,255,255,.2); border-radius: 2px; }
 .zdravi i { display: block; height: 100%; background: var(--dobre); width: 100%; }
 .hvezdy { color: var(--sodik); letter-spacing: .15em; }
@@ -117,7 +117,7 @@ button:disabled { background: #3d4350; color: #d3d7de; cursor: default; }
 .karta { background: var(--panel); border-radius: 5px; padding: 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .karta p { font-size: .95rem; color: var(--tlumeny); }
 .radek { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.pill { font-family: var(--display); font-weight: 700; font-size: .82rem; letter-spacing: .08em; text-transform: uppercase; padding: 1px 8px; border-radius: 3px; background: var(--panel-2); color: var(--text); }
+.pill { font-family: var(--display); font-weight: 700; font-size: .82rem; letter-spacing: .08em; text-transform: uppercase; padding: 3px 9px; border-radius: 3px; background: var(--panel-2); color: var(--text); }
 .pill.hraj { background: var(--sodik); color: #14161a; }
 .pill.ok { background: var(--dobre); color: #14161a; }
 .odmena { margin-left: auto; font-family: var(--display); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--sodik); }
@@ -127,7 +127,7 @@ button:disabled { background: #3d4350; color: #d3d7de; cursor: default; }
 .staty i b { display: block; height: 100%; background: var(--sodik); border-radius: 2px; }
 .rozvrh { font-family: var(--display); font-size: 1rem; color: var(--text); letter-spacing: .03em; }
 .frakce { display: grid; grid-template-columns: repeat(auto-fit, minmax(248px, 1fr)); gap: 14px; }
-.frakce .karta { border-top: 4px solid var(--f, var(--sodik)); }
+.frakce .karta { border-top: 4px solid var(--f, var(--sodik)); border-radius: 0; }
 </style>
 
 <div class="wrap">
