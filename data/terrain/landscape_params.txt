@@ -1,0 +1,9 @@
+Střed výřezu (WGS84):  50.08170 N, 14.25860 E
+Počátek světa (UTM 33N): E 446956, N 5547978
+Velikost:              8129 × 8129 px, 1 m/px
+Rozsah výšek:          284.12 – 409.95 m n. m. (125.83 m)
+Landscape Scale X/Y:   100
+Landscape Scale Z:     24.5755
+Landscape Location Z:  34703.3 cm (aby Z = nadmořská výška)
+Nejvyšší objekt:       114.4 m nad terénem
+Zdroj dat:             © ČÚZK, DMR 5G a DMP 1G
