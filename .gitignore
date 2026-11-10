@@ -16,3 +16,7 @@ Build/
 # GIS zdrojová data (stahují se z ČÚZK, do repozitáře nepatří)
 tools/gis/data/
 tools/gis/out/
+
+# Python
+__pycache__/
+*.pyc
