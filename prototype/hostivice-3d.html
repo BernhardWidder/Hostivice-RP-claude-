@@ -1,0 +1,667 @@
+<title>Hostivice 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Rozvržení: 3D scéna je skoro celá stránka, pod ní jen krátké vysvětlení a zdroje.
+   Jeden záměrně tmavý vzhled kolem scény, aby zlatá hodina ve hře vynikla. */
+:root {
+  color-scheme: dark;
+  --asfalt: #191d25; --panel: #232833; --linka: #3b4352;
+  --text: #ece8df; --tlumeny: #a0a7b4; --sodik: #ff9f43;
+  --spz: #f4f2ea; --spz-modra: #1d4c9e; --dobre: #77c47c; --spatne: #ee5d5d;
+  --display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--asfalt); color: var(--text); font-family: var(--body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 18px 48px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; margin: 0; text-wrap: balance; line-height: 1.05; text-transform: uppercase; }
+h1 { font-size: clamp(2rem, 6vw, 3.2rem); } h1 em { font-style: normal; color: var(--sodik); }
+h2 { font-size: 1.5rem; }
+p { margin: 0; max-width: 68ch; } .tlumeny { color: var(--tlumeny); }
+.spz { display: inline-flex; align-items: stretch; align-self: flex-start; background: var(--spz); color: #14161a; border-radius: 4px; overflow: hidden;
+  font-family: var(--display); font-weight: 700; font-size: 1rem; letter-spacing: .12em; border: 2px solid #14161a; outline: 1px solid var(--spz); }
+.spz b { background: var(--spz-modra); color: #fff; font-size: .72rem; letter-spacing: .04em; padding: 0 6px 4px; display: flex; align-items: flex-end; }
+.spz span { padding: 4px 12px 3px; }
+.hlava { display: flex; flex-direction: column; gap: 10px; }
+.scena { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #10131a; border: 1px solid var(--linka); border-radius: 6px; overflow: hidden;
+  touch-action: none; user-select: none; -webkit-user-select: none; }
+@media (max-width: 640px) { .scena { aspect-ratio: 9 / 15; } }
+.scena canvas#platno { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hud { position: absolute; inset: 0; pointer-events: none; font-family: var(--display); }
+.hud-l { position: absolute; left: 10px; top: 10px; display: flex; gap: 8px; align-items: flex-start; }
+.hud-l > div { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.hud-r { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+#mapa { width: 104px; height: 104px; border-radius: 50%; border: 2px solid rgba(255,255,255,.55); background: #10131a; }
+.stitek { background: rgba(16,19,26,.78); border: 1px solid rgba(255,255,255,.14); border-radius: 4px; padding: 4px 10px; font-size: 1.1rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .03em; }
+.zdravi { width: 104px; height: 9px; background: rgba(16,19,26,.78); border: 1px solid rgba(255,255,255,.2); border-radius: 2px; }
+.zdravi i { display: block; height: 100%; background: var(--dobre); width: 100%; }
+.hvezdy { color: var(--sodik); letter-spacing: .15em; } .hvezdy .off { color: rgba(255,255,255,.3); }
+.ukol { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); width: min(46%, 420px); text-align: center;
+  background: rgba(16,19,26,.82); border: 1px solid rgba(255,159,67,.5); border-radius: 4px; padding: 6px 12px; font-family: var(--body); font-size: .9rem; font-weight: 500; line-height: 1.3; }
+@media (max-width: 760px) { .ukol { top: 124px; width: calc(100% - 20px); } }
+.ukol b { color: var(--sodik); font-family: var(--display); font-size: 1.05rem; letter-spacing: .04em; }
+.toast { position: absolute; left: 50%; top: 42%; transform: translate(-50%,-50%); background: var(--spz); color: #14161a; border: 3px solid #14161a; border-radius: 5px;
+  font-family: var(--display); font-weight: 700; font-size: clamp(1.3rem, 5vw, 2rem); text-transform: uppercase; padding: 8px 20px; text-align: center; max-width: 88%; }
+.toast small { display: block; font-family: var(--body); font-weight: 500; font-size: .9rem; text-transform: none; }
+.dialog { position: absolute; left: 10px; right: 10px; bottom: 10px; background: rgba(16,19,26,.94); border: 1px solid var(--sodik); border-radius: 5px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; pointer-events: auto; }
+.dialog strong { font-family: var(--display); color: var(--sodik); font-size: 1.15rem; letter-spacing: .05em; text-transform: uppercase; }
+.dialog p { font-size: .98rem; line-height: 1.4; }
+button { font-family: var(--display); font-weight: 700; font-size: 1.1rem; letter-spacing: .06em; text-transform: uppercase; color: #14161a; background: var(--sodik); border: 0; border-radius: 4px; padding: 8px 18px; cursor: pointer; }
+button:focus-visible { outline: 3px solid var(--spz); outline-offset: 2px; }
+button:disabled { background: #3d4350; color: #d3d7de; cursor: default; }
+.dialog button { align-self: flex-end; }
+.joy { position: absolute; left: 14px; bottom: 14px; width: 116px; height: 116px; border-radius: 50%; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.35); pointer-events: auto; }
+.joy i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(255,159,67,.9); }
+@media (hover: hover) and (pointer: fine) { .joy { display: none; } }
+.akce { position: absolute; right: 14px; bottom: 14px; pointer-events: auto; min-width: 124px; min-height: 52px; }
+.start { position: absolute; inset: 0; background: linear-gradient(rgba(13,15,21,.05) 30%, rgba(13,15,21,.88)); display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 12px; text-align: center; padding: 20px 20px 28px; }
+.start h2 { font-size: clamp(1.7rem, 6vw, 2.8rem); text-shadow: 0 2px 12px rgba(0,0,0,.7); }
+.start p { font-size: .98rem; max-width: 44ch; text-shadow: 0 1px 6px rgba(0,0,0,.9); }
+.start button { font-size: 1.5rem; padding: 10px 40px; }
+.dva { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.karta { background: var(--panel); border-radius: 5px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.karta p, .karta li { font-size: .95rem; color: var(--tlumeny); }
+.karta ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+</style>
+
+<div class="wrap">
+  <header class="hlava">
+    <div class="spz"><b>CZ</b><span>2S4 0253</span></div>
+    <h1>Hostivice: <em>Za čárou</em> · 3D</h1>
+    <p>Skutečná Hostivice ve 3D: 800 × 800 metrů kolem Husova náměstí a nádraží, postavených z leteckých snímků, laserového skenu a katastru. Dá se v ní chodit, jezdit a plnit tři kšefty.</p>
+  </header>
+
+  <section aria-label="Hratelná 3D ukázka">
+    <div class="scena" id="scena">
+      <canvas id="platno" aria-label="3D pohled na Hostivici"></canvas>
+      <div class="hud" id="hud" hidden>
+        <div class="hud-l">
+          <canvas id="mapa" width="208" height="208" aria-label="Minimapa"></canvas>
+          <div>
+            <div class="stitek" id="hudPenize">0 Kč</div>
+            <div class="zdravi" aria-label="Zdraví"><i id="hudZdravi"></i></div>
+            <div class="stitek" id="hudVuz" hidden></div>
+          </div>
+        </div>
+        <div class="hud-r">
+          <div class="stitek hvezdy" id="hudHledany" aria-label="Hledanost"></div>
+          <div class="stitek" id="hudLimit" hidden></div>
+        </div>
+        <div class="ukol" id="ukol"></div>
+        <div class="toast" id="toast" hidden></div>
+        <div class="joy" id="joy" aria-hidden="true"><i id="joyKnob"></i></div>
+        <button class="akce" id="akce" type="button" disabled>—</button>
+        <div class="dialog" id="dialog" hidden>
+          <strong id="dlgKdo"></strong><p id="dlgText"></p><button type="button" id="dlgDal">Dál</button>
+        </div>
+      </div>
+      <div class="start" id="start">
+        <h2 id="startNadpis">Načítám Hostivici…</h2>
+        <p id="startText">Jízda: šipky nebo WASD, na telefonu páčka vlevo (nahoru plyn, dolů brzda a zpátečka). Akce: E nebo tlačítko vpravo. Rozhlížení: tažení po obraze.</p>
+        <button type="button" id="hrat" disabled>Hrát</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="dva">
+    <article class="karta"><h2>Co je skutečné</h2><ul>
+      <li>Terén z laserového skenu (DMR 5G), povrch země z ortofota.</li>
+      <li>444 domů: půdorysy z katastru (RÚIAN), výšky a typ střechy ze skenu povrchu (DMP 1G), střechy z leteckého snímku.</li>
+      <li>Uliční síť a trať ze ZABAGED; po ní jezdí auta a chodí lidé.</li>
+      <li>Stromy stojí tam, kde je na snímku vidět koruna.</li>
+    </ul></article>
+    <article class="karta"><h2>Co je zjednodušené</h2><ul>
+      <li>Fasády, okna, auta a postavy jsou generované, ne vymodelované podle skutečnosti.</li>
+      <li>Hospoda, večerka a autodílna jsou smyšlené podniky umístěné na vybrané domy.</li>
+      <li>Tohle běží v prohlížeči. Finální grafika v Unreal Engine 5 bude o třídu výš, ale poloha každého domu a ulice zůstane stejná.</li>
+    </ul></article>
+  </section>
+  <p class="tlumeny" style="font-size:.85rem">Podkladová data © ČÚZK (Ortofoto ČR, DMR 5G, DMP 1G, RÚIAN, ZABAGED), otevřená data.</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const wrap = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+const klid = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const hash = n => { let x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+const T = window.THREE;
+const chyba = t => { $('startNadpis').textContent = 'Nejde načíst'; $('startText').textContent = t; };
+if (!T) { chyba('Nepodařilo se načíst 3D knihovnu.'); return; }
+
+let W, N, G, GN, H;
+const heightAt = (x, z) => {
+  const gx = clamp(x / G, 0, GN - 1.001), gz = clamp(z / G, 0, GN - 1.001), i = gx | 0, j = gz | 0, fx = gx - i, fz = gz - j;
+  const a = H[j * GN + i], b = H[j * GN + i + 1], c = H[(j + 1) * GN + i], d = H[(j + 1) * GN + i + 1];
+  return (a * (1 - fx) + b * fx) * (1 - fz) + (c * (1 - fx) + d * fx) * fz;
+};
+
+// ------------------------------------------------------------------ renderer
+const platno = $('platno');
+const renderer = new T.WebGLRenderer({ canvas: platno, antialias: true, powerPreference: 'high-performance' });
+renderer.outputEncoding = T.sRGBEncoding; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.92;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
+const scene = new T.Scene();
+const MLHA = new T.Color(0.74, 0.68, 0.6);
+scene.fog = new T.Fog(MLHA, 140, 950);
+const kamera = new T.PerspectiveCamera(58, 16 / 9, 0.3, 2400);
+const SLUNCE = new T.Vector3(-0.62, 0.36, 0.5).normalize();   // nízké slunce od jihozápadu
+scene.add(new T.HemisphereLight(0xa9c2e8, 0x6b5a45, 0.6));
+const slunce = new T.DirectionalLight(0xffd3a1, 1.7);
+slunce.castShadow = true; slunce.shadow.mapSize.set(2048, 2048);
+Object.assign(slunce.shadow.camera, { left: -85, right: 85, top: 85, bottom: -85, near: 10, far: 420 });
+slunce.shadow.bias = -0.0004; slunce.shadow.normalBias = 0.5;
+scene.add(slunce, slunce.target);
+// obloha: barva u obzoru je stejná jako mlha, takže okraj světa splyne
+{ const g = new T.SphereGeometry(2000, 32, 20), pos = g.attributes.position, col = [], zenit = new T.Color(0.15, 0.3, 0.62), c = new T.Color();
+  for (let i = 0; i < pos.count; i++) { c.copy(MLHA).lerp(zenit, Math.pow(Math.max(pos.getY(i) / 2000, 0), 0.55)); col.push(c.r, c.g, c.b); }
+  g.setAttribute('color', new T.Float32BufferAttribute(col, 3));
+  const nebe = new T.Mesh(g, new T.MeshBasicMaterial({ vertexColors: true, side: T.BackSide, fog: false, depthWrite: false })); nebe.position.set(400, 0, 400); scene.add(nebe);
+  const cv = document.createElement('canvas'); cv.width = cv.height = 256; const x = cv.getContext('2d'), gr = x.createRadialGradient(128, 128, 0, 128, 128, 128);
+  gr.addColorStop(0, 'rgba(255,244,214,1)'); gr.addColorStop(0.06, 'rgba(255,226,170,.9)'); gr.addColorStop(0.25, 'rgba(255,170,90,.28)'); gr.addColorStop(1, 'rgba(255,150,70,0)'); x.fillStyle = gr; x.fillRect(0, 0, 256, 256);
+  const zar = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(cv), blending: T.AdditiveBlending, fog: false, depthWrite: false })); zar.position.set(400, 0, 400).addScaledVector(SLUNCE, 1700); zar.scale.set(1500, 1500, 1); scene.add(zar); }
+
+const platnoTex = (w, h, fn) => { const c = document.createElement('canvas'); c.width = w; c.height = h; fn(c.getContext('2d'), w, h); const t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); return t; };
+const sum = (g, w, h, a, n) => { for (let i = 0; i < n; i++) { g.fillStyle = `rgba(${Math.random() < .5 ? 0 : 255},${Math.random() < .5 ? 0 : 255},${Math.random() < .5 ? 0 : 255},${a * Math.random()})`; g.fillRect(Math.random() * w, Math.random() * h, 1 + Math.random() * 2, 1 + Math.random() * 2); } };
+
+// ------------------------------------------------------------------ stavba světa
+const hrany = new Map(), polygony = new Map();          // prostorová mřížka kolizí
+const BUNKA = 16, klic = (i, j) => i * 4096 + j;
+function doMrizky(mapa, x0, z0, x1, z1, v) {
+  for (let i = Math.floor(Math.min(x0, x1) / BUNKA); i <= Math.floor(Math.max(x0, x1) / BUNKA); i++)
+    for (let j = Math.floor(Math.min(z0, z1) / BUNKA); j <= Math.floor(Math.max(z0, z1) / BUNKA); j++) { const k = klic(i, j); (mapa.get(k) || mapa.set(k, []).get(k)).push(v); }
+}
+function vBudove(x, z) {
+  const l = polygony.get(klic(Math.floor(x / BUNKA), Math.floor(z / BUNKA))); if (!l) return false;
+  for (const p of l) { let c = false; for (let i = 0, j = p.length - 1; i < p.length; j = i++) if ((p[i][1] > z) !== (p[j][1] > z) && x < (p[j][0] - p[i][0]) * (z - p[i][1]) / (p[j][1] - p[i][1]) + p[i][0]) c = !c; if (c) return true; }
+  return false;
+}
+function vytlac(o, r) {                                   // kruh proti zdem domů a okraji světa
+  let hit = false; const seen = new Set();
+  for (let i = Math.floor((o.x - r) / BUNKA); i <= Math.floor((o.x + r) / BUNKA); i++) for (let j = Math.floor((o.z - r) / BUNKA); j <= Math.floor((o.z + r) / BUNKA); j++) {
+    const l = hrany.get(klic(i, j)); if (!l) continue;
+    for (const e of l) { if (seen.has(e)) continue; seen.add(e);
+      const dx = e[2] - e[0], dz = e[3] - e[1], t = clamp(((o.x - e[0]) * dx + (o.z - e[1]) * dz) / (dx * dx + dz * dz || 1e-9), 0, 1);
+      const px = e[0] + dx * t, pz = e[1] + dz * t, ex = o.x - px, ez = o.z - pz, d = Math.hypot(ex, ez);
+      if (d < r && d > 1e-5) { o.x = px + ex / d * r; o.z = pz + ez / d * r; hit = true; } }
+  }
+  if (o.x < 8) { o.x = 8; hit = true; } if (o.x > N - 8) { o.x = N - 8; hit = true; } if (o.z < 8) { o.z = 8; hit = true; } if (o.z > N - 8) { o.z = N - 8; hit = true; }
+  return hit;
+}
+
+function postavSvet(ortho) {
+  ortho.encoding = T.sRGBEncoding; ortho.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  // terén
+  const gt = new T.PlaneGeometry(N, N, GN - 1, GN - 1); gt.rotateX(-Math.PI / 2); gt.translate(N / 2, 0, N / 2);
+  const pp = gt.attributes.position; for (let i = 0; i < pp.count; i++) pp.setY(i, H[i]);
+  gt.computeVertexNormals();
+  const zrno = platnoTex(128, 128, (g, w, h) => { const d = g.createImageData(w, h); for (let i = 0; i < d.data.length; i += 4) { const v = 96 + Math.random() * 64; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; } g.putImageData(d, 0, 0); }); zrno.encoding = T.LinearEncoding;
+  const mz = new T.MeshLambertMaterial({ map: ortho });
+  mz.onBeforeCompile = sh => { sh.uniforms.zrno = { value: zrno }; sh.fragmentShader = 'uniform sampler2D zrno;\n' + sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n diffuseColor.rgb *= 0.74 + 0.52 * texture2D(zrno, vUv * 520.0).g;'); };
+  const zem = new T.Mesh(gt, mz); zem.receiveShadow = true; scene.add(zem);
+  const okoli = new T.Mesh(new T.PlaneGeometry(6000, 6000), new T.MeshLambertMaterial({ color: 0x4f5f3c })); okoli.rotation.x = -Math.PI / 2; okoli.position.set(N / 2, heightAt(N / 2, N / 2) - 6, N / 2); scene.add(okoli);
+
+  // domy
+  const wp = [], wn = [], wu = [], wc = [], rp = [], ru = [], tp = [], tu = [], tc = [];
+  const vz = document.createElement('canvas'); vz.width = vz.height = 400; const vg = vz.getContext('2d'); vg.drawImage(orthoImg, 0, 0, 400, 400); const px = vg.getImageData(0, 0, 400, 400).data;
+  const barvaStrechy = p => { let r = 0, g = 0, b = 0, n = 0; const cx = p.reduce((s, q) => s + q[0], 0) / p.length, cz = p.reduce((s, q) => s + q[1], 0) / p.length;
+    for (const q of p.concat([[cx, cz]])) for (const k of [0.25, 0.6]) { const x = clamp(Math.round((cx + (q[0] - cx) * k) / 2), 0, 399), z = clamp(Math.round((cz + (q[1] - cz) * k) / 2), 0, 399), i = (z * 400 + x) * 4; r += px[i]; g += px[i + 1]; b += px[i + 2]; n++; }
+    const c = new T.Color(r / n / 255, g / n / 255, b / n / 255); const hsl = {}; c.getHSL(hsl); c.setHSL(hsl.h, Math.min(1, hsl.s * 1.25), clamp(hsl.l * 1.15, 0.32, 0.62)); return c.convertSRGBToLinear(); };
+  let tcol = null;
+  const ttri = (A, B, C) => { for (const v of [A, B, C]) { tp.push(v[0], v[1], v[2]); tu.push(v[3], v[4]); tc.push(tcol.r, tcol.g, tcol.b); } };
+  const PAL = ['#e8dcc4', '#d9c7a3', '#efe6d5', '#c9b79a', '#e3cfae', '#d6d2c9', '#f0e2c0', '#cbb8a0', '#e6d3b8', '#bfae96', '#dfc9a8', '#e9e4da'].map(c => new T.Color(c));
+  const quad = (a, b, y0, y1, nx, nz, col, u0, u1, v0, v1) => {
+    const P = [[a[0], y0, a[1]], [b[0], y1, b[1]], [b[0], y0, b[1]], [a[0], y0, a[1]], [a[0], y1, a[1]], [b[0], y1, b[1]]], U = [[u0, v0], [u1, v1], [u1, v0], [u0, v0], [u0, v1], [u1, v1]];
+    for (let k = 0; k < 6; k++) { wp.push(...P[k]); wn.push(nx, 0, nz); wu.push(...U[k]); wc.push(col.r, col.g, col.b); }
+  };
+  const tri = (A, B, C, nx, nz, col) => { for (const p of [A, B, C]) { wp.push(...p); wn.push(nx, 0, nz); wu.push(0.04, 0.04); wc.push(col.r, col.g, col.b); } };
+  const rtri = (A, B, C) => { for (const p of [A, B, C]) { rp.push(...p); ru.push(p[0] / N, 1 - p[2] / N); } };
+  W.budovy.forEach((b, bi) => {
+    const p = b.p, n = p.length, y0 = b.b - 1.5, ye = b.b + b.e, yr = b.b + b.r;
+    const col = b.a > 700 ? new T.Color(0xb9bcc0) : PAL[Math.floor(hash(bi) * PAL.length)];
+    const patra = Math.max(1, Math.round(b.e / 2.9));
+    polygony.size; doMrizky(polygony, Math.min(...p.map(q => q[0])), Math.min(...p.map(q => q[1])), Math.max(...p.map(q => q[0])), Math.max(...p.map(q => q[1])), p);
+    for (let i = 0; i < n; i++) {
+      const a = p[i], c = p[(i + 1) % n], dx = c[0] - a[0], dz = c[1] - a[1], len = Math.hypot(dx, dz); if (len < 0.05) continue;
+      const pole = len < 2.4 ? 0 : Math.max(1, Math.round(len / 3.4));
+      quad(a, c, y0, ye, dz / len, -dx / len, col, pole ? 0 : 0.02, pole ? pole : 0.08, pole ? -1.5 / b.e * patra : 0.02, pole ? patra : 0.05);
+      const e = [a[0], a[1], c[0], c[1]]; doMrizky(hrany, a[0], a[1], c[0], c[1], e);
+    }
+    const tv = T.ShapeUtils.triangulateShape(p.map(q => new T.Vector2(q[0], q[1])), []);
+    if (b.t === 1) {
+      let [cx, cz, ang, w, h] = b.o; if (h > w) { ang += Math.PI / 2; [w, h] = [h, w]; }
+      const ux = Math.cos(ang), uz = Math.sin(ang), vx = -uz, vz = ux, L = w / 2, S = h / 2, o = 0.35, sp = (yr - ye) / S;
+      const P = (l, s, y) => [cx + ux * l + vx * s, y, cz + uz * l + vz * s];
+      const yo = ye - sp * o;
+      tcol = barvaStrechy(p); const sl = Math.hypot(S + o, yr - yo), PU = (l, s, y, v) => [...P(l, s, y), l, v];
+      ttri(PU(-L - o, -S - o, yo, 0), PU(L + o, -S - o, yo, 0), PU(L + o, 0, yr, sl)); ttri(PU(-L - o, -S - o, yo, 0), PU(L + o, 0, yr, sl), PU(-L - o, 0, yr, sl));
+      ttri(PU(-L - o, S + o, yo, 0), PU(L + o, 0, yr, sl), PU(L + o, S + o, yo, 0)); ttri(PU(-L - o, S + o, yo, 0), PU(-L - o, 0, yr, sl), PU(L + o, 0, yr, sl));
+      tri(P(L, -S, ye), P(L, S, ye), P(L, 0, yr), ux, uz, col); tri(P(-L, S, ye), P(-L, -S, ye), P(-L, 0, yr), -ux, -uz, col);
+    } else if (b.t === 2) {
+      const cx = p.reduce((s, q) => s + q[0], 0) / n, cz = p.reduce((s, q) => s + q[1], 0) / n, k = 0.32;
+      const q = p.map(v => [cx + (v[0] - cx) * k, cz + (v[1] - cz) * k]);
+      tcol = barvaStrechy(p);
+      for (let i = 0; i < n; i++) { const j = (i + 1) % n, len = Math.hypot(p[j][0] - p[i][0], p[j][1] - p[i][1]), sl = Math.hypot(Math.hypot(q[i][0] - p[i][0], q[i][1] - p[i][1]), yr - ye);
+        const A = [p[i][0], ye, p[i][1], 0, 0], B = [p[j][0], ye, p[j][1], len, 0], C = [q[j][0], yr, q[j][1], len * 0.66, sl], D = [q[i][0], yr, q[i][1], len * 0.34, sl]; ttri(A, B, C); ttri(A, C, D); }
+      for (const f of tv) ttri(...f.map(i => [q[i][0], yr, q[i][1], q[i][0], q[i][1]]));
+    } else for (const f of tv) rtri(...f.map(i => [p[i][0], ye, p[i][1]]));
+  });
+  const okno = platnoTex(256, 256, (g, w, h) => {
+    g.fillStyle = '#f6f3ec'; g.fillRect(0, 0, w, h); sum(g, w, h, 0.05, 2600);
+    g.fillStyle = 'rgba(90,80,70,.13)'; g.fillRect(0, h - 10, w, 10);
+    g.fillStyle = '#fbfaf6'; g.fillRect(70, 62, 116, 132);
+    const gr = g.createLinearGradient(0, 70, 0, 186); gr.addColorStop(0, '#6c8198'); gr.addColorStop(.5, '#34424f'); gr.addColorStop(1, '#222b34'); g.fillStyle = gr; g.fillRect(78, 70, 100, 116);
+    g.fillStyle = '#fbfaf6'; g.fillRect(126, 70, 4, 116); g.fillRect(78, 108, 100, 4);
+    g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(66, 194, 124, 5);
+  });
+  const gw = new T.BufferGeometry();
+  gw.setAttribute('position', new T.Float32BufferAttribute(wp, 3)); gw.setAttribute('normal', new T.Float32BufferAttribute(wn, 3)); gw.setAttribute('uv', new T.Float32BufferAttribute(wu, 2)); gw.setAttribute('color', new T.Float32BufferAttribute(wc, 3));
+  const zdi = new T.Mesh(gw, new T.MeshLambertMaterial({ map: okno, vertexColors: true, side: T.DoubleSide })); zdi.castShadow = zdi.receiveShadow = true; scene.add(zdi);
+  const gr = new T.BufferGeometry(); gr.setAttribute('position', new T.Float32BufferAttribute(rp, 3)); gr.setAttribute('uv', new T.Float32BufferAttribute(ru, 2)); gr.computeVertexNormals();
+  const strechy = new T.Mesh(gr, new T.MeshLambertMaterial({ map: ortho, side: T.DoubleSide })); strechy.castShadow = strechy.receiveShadow = true; scene.add(strechy);
+  const tasky = platnoTex(128, 128, (g, w, h) => { g.fillStyle = '#d8d8d8'; g.fillRect(0, 0, w, h); for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) { const v = 200 + Math.random() * 50; g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect((c + (r % 2) * 0.5) * w / 4 - w / 8 + 1, r * h / 4 + 3, w / 4 - 2, h / 4 - 3); } for (let r = 0; r < 4; r++) { g.fillStyle = 'rgba(0,0,0,.42)'; g.fillRect(0, r * h / 4, w, 3); } });
+  const gtk = new T.BufferGeometry(); gtk.setAttribute('position', new T.Float32BufferAttribute(tp, 3)); gtk.setAttribute('uv', new T.Float32BufferAttribute(tu, 2)); gtk.setAttribute('color', new T.Float32BufferAttribute(tc, 3)); gtk.computeVertexNormals();
+  const sikme = new T.Mesh(gtk, new T.MeshLambertMaterial({ map: tasky, vertexColors: true, side: T.DoubleSide })); sikme.castShadow = sikme.receiveShadow = true; scene.add(sikme);
+
+  // cedule a dveře
+  for (const b of W.budovy) if (b.n) {
+    const d = b.d, tex = platnoTex(512, 96, (g, w, h) => { g.fillStyle = '#1b1e25'; g.fillRect(0, 0, w, h); g.strokeStyle = '#ff9f43'; g.lineWidth = 6; g.strokeRect(3, 3, w - 6, h - 6); g.fillStyle = '#f4f2ea'; g.font = '700 54px "Barlow Condensed", "Arial Narrow", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(b.n, w / 2, h / 2 + 3, w - 30); });
+    const c = new T.Mesh(new T.PlaneGeometry(4.6, 0.86), new T.MeshBasicMaterial({ map: tex })); c.position.set(d.wx + d.nx * 0.12, b.b + 3.1, d.wz + d.nz * 0.12); c.rotation.y = Math.atan2(d.nx, d.nz); scene.add(c);
+    const dv = new T.Mesh(new T.BoxGeometry(1.15, 2.15, 0.12), new T.MeshLambertMaterial({ color: 0x3a2618 })); dv.position.set(d.wx + d.nx * 0.04, heightAt(d.x, d.z) + 1.07, d.wz + d.nz * 0.04); dv.rotation.y = Math.atan2(d.nx, d.nz); scene.add(dv);
+  }
+
+  // silnice
+  const asfalt = cary => platnoTex(64, 256, (g, w, h) => { g.fillStyle = '#4a4b4f'; g.fillRect(0, 0, w, h); sum(g, w, h, 0.07, 1800); if (cary) { g.fillStyle = 'rgba(238,236,226,.85)'; g.fillRect(30, 20, 4, 110); g.fillRect(2, 0, 2, h); g.fillRect(w - 4, 0, 2, h); } });
+  for (const hlavni of [false, true]) {
+    const sp = [], su = [];
+    for (const s of W.ulice) { if (!s.a || (s.w > 7) !== hlavni) continue;
+      const pts = []; let dl = 0;
+      for (let i = 0; i < s.p.length - 1; i++) { const a = s.p[i], b = s.p[i + 1], len = Math.hypot(b[0] - a[0], b[1] - a[1]), k = Math.max(1, Math.ceil(len / 3)); for (let j = 0; j < k; j++) pts.push([a[0] + (b[0] - a[0]) * j / k, a[1] + (b[1] - a[1]) * j / k]); }
+      pts.push(s.p[s.p.length - 1]);
+      let prev = null;
+      for (let i = 0; i < pts.length; i++) {
+        const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)], dx = b[0] - a[0], dz = b[1] - a[1], len = Math.hypot(dx, dz) || 1, nx = -dz / len * s.w / 2, nz = dx / len * s.w / 2;
+        if (i) dl += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+        const l = [pts[i][0] + nx, 0, pts[i][1] + nz], r = [pts[i][0] - nx, 0, pts[i][1] - nz]; l[1] = heightAt(l[0], l[2]) + 0.09; r[1] = heightAt(r[0], r[2]) + 0.09;
+        const cur = { l, r, v: dl / 9 };
+        if (prev) { sp.push(...prev.l, ...prev.r, ...cur.r, ...prev.l, ...cur.r, ...cur.l); su.push(0, prev.v, 1, prev.v, 1, cur.v, 0, prev.v, 1, cur.v, 0, cur.v); }
+        prev = cur;
+      } }
+    const gs = new T.BufferGeometry(); gs.setAttribute('position', new T.Float32BufferAttribute(sp, 3)); gs.setAttribute('uv', new T.Float32BufferAttribute(su, 2)); gs.computeVertexNormals();
+    const m = new T.Mesh(gs, new T.MeshLambertMaterial({ map: asfalt(hlavni), side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: hlavni ? -3 : -2, polygonOffsetUnits: hlavni ? -3 : -2 })); m.receiveShadow = true; scene.add(m);
+  }
+
+  // stromy
+  const M = new T.Matrix4(), Q = new T.Quaternion(), S = new T.Vector3(), P = new T.Vector3(), C = new T.Color();
+  const gk = new T.IcosahedronGeometry(1, 2); { const a = gk.attributes.position; for (let i = 0; i < a.count; i++) { const k = 0.82 + hash(Math.round(a.getX(i) * 31 + a.getY(i) * 57 + a.getZ(i) * 91)) * 0.36; a.setXYZ(i, a.getX(i) * k, a.getY(i) * k, a.getZ(i) * k); } gk.computeVertexNormals(); }
+  const nS = W.stromy.length;
+  const kmeny = new T.InstancedMesh(new T.CylinderGeometry(0.16, 0.26, 1, 6), new T.MeshLambertMaterial({ color: 0x4b3a2a }), nS);
+  const koruny = new T.InstancedMesh(gk, new T.MeshLambertMaterial({ color: 0xffffff }), nS);
+  const ZEL = [0x2f5a2a, 0x47752f, 0x5f8436, 0x3a6a2c, 0x7a8c3a, 0x355f33];
+  W.stromy.forEach(([x, z, h], i) => {
+    const y = heightAt(x, z); Q.setFromAxisAngle(new T.Vector3(0, 1, 0), hash(i) * 6.28);
+    M.compose(P.set(x, y + h * 0.25, z), Q, S.set(1, h * 0.5, 1)); kmeny.setMatrixAt(i, M);
+    const r = h * (0.3 + hash(i + 7) * 0.1); M.compose(P.set(x, y + h * 0.66, z), Q, S.set(r, h * 0.36, r)); koruny.setMatrixAt(i, M);
+    koruny.setColorAt(i, C.setHex(ZEL[Math.floor(hash(i + 3) * ZEL.length)]).multiplyScalar(0.85 + hash(i + 11) * 0.3));
+  });
+  koruny.castShadow = true; koruny.receiveShadow = true; scene.add(kmeny, koruny);
+
+  // lampy
+  const nL = W.lampy.length;
+  const sloupy = new T.InstancedMesh(new T.CylinderGeometry(0.06, 0.1, 7, 6), new T.MeshLambertMaterial({ color: 0x70757c }), nL);
+  const hlavy = new T.InstancedMesh(new T.BoxGeometry(0.7, 0.14, 0.26), new T.MeshBasicMaterial({ color: 0xffe2b0 }), nL);
+  W.lampy.forEach(([x, z], i) => { const y = heightAt(x, z); Q.identity(); M.compose(P.set(x, y + 3.5, z), Q, S.set(1, 1, 1)); sloupy.setMatrixAt(i, M); M.compose(P.set(x, y + 7, z), Q, S.set(1, 1, 1)); hlavy.setMatrixAt(i, M); });
+  scene.add(sloupy, hlavy);
+
+  // voda
+  for (const v of W.voda) { const sh = new T.Shape(v.map(q => new T.Vector2(q[0], -q[1]))); const m = new T.Mesh(new T.ShapeGeometry(sh), new T.MeshPhongMaterial({ color: 0x2f5266, shininess: 90, specular: 0xffd9a8 })); m.rotation.x = -Math.PI / 2; m.position.y = Math.min(...v.map(q => heightAt(q[0], q[1]))) + 0.12; scene.add(m); }
+}
+
+// ------------------------------------------------------------------ modely
+const matCache = {};
+const mat = (c, o) => matCache[c + JSON.stringify(o || 0)] || (matCache[c + JSON.stringify(o || 0)] = new T.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.55, metalness: 0.15 }, o)));
+const SKLO = new T.MeshStandardMaterial({ color: 0x1b2530, roughness: 0.08, metalness: 0.6 });
+const GUMA = new T.MeshLambertMaterial({ color: 0x18191b });
+const TYPY = {
+  felicita: { nazev: 'Felicita', L: 3.85, Wd: 1.64, barva: 0x4f7f58, vmax: 31, acc: 4.6, hp: 100, rozvor: 2.45, telo: [[-1.92, .28], [1.86, .28], [1.93, .5], [1.86, .76], [.8, .86], [-1.84, .9], [-1.92, .7]], kab: [-1.72, .78, -1.5, .1, .86, 1.38] },
+  dodavka: { nazev: 'Rozvážka', L: 5.0, Wd: 1.95, barva: 0xe3e1da, vmax: 25, acc: 3.3, hp: 140, rozvor: 3.2, telo: [[-2.5, .3], [2.44, .3], [2.5, .62], [2.42, 1.02], [1.78, 1.12], [1.3, 2.12], [-2.5, 2.16]], okna: [[1.52, 1.62, .06, .86, 1.7, 0, -0.42], [1.1, 1.62, .78, .6, .04, 0.96, 0], [1.1, 1.62, .78, .6, .04, -0.96, 0]] },
+  manazerak: { nazev: 'Manažerák', L: 4.9, Wd: 1.86, barva: 0x121317, vmax: 50, acc: 8.2, hp: 80, rozvor: 2.95, telo: [[-2.45, .3], [2.4, .3], [2.45, .52], [2.36, .74], [1.05, .84], [-1.55, .88], [-2.4, .82], [-2.45, .6]], kab: [-1.5, 1.0, -0.85, .2, .86, 1.36] },
+  hlidka: { nazev: 'Hlídka MP', L: 4.3, Wd: 1.75, barva: 0xe9ecee, vmax: 33, acc: 5.4, hp: 120, rozvor: 2.6, policie: true, telo: [[-2.15, .3], [2.1, .3], [2.15, .52], [2.06, .78], [.95, .88], [-2.05, .92], [-2.15, .7]], kab: [-1.85, .9, -1.55, .15, .88, 1.42] },
+  autobus: { nazev: 'Linkový autobus', L: 11.6, Wd: 2.5, barva: 0xb83a34, vmax: 12, acc: 1.6, hp: 300, rozvor: 6, bus: true, telo: [[-5.8, .35], [5.75, .35], [5.8, 1.2], [5.72, 3.0], [-5.8, 3.05]], okna: [[0, 2.15, 10.4, .9, .04, 1.26, 0], [0, 2.15, 10.4, .9, .04, -1.26, 0], [5.76, 2.0, .06, 1.3, 2.2, 0, 0]] },
+  civil: { nazev: 'Civil', L: 4.1, Wd: 1.7, barva: 0x6b7f9c, vmax: 12, acc: 3, hp: 100, rozvor: 2.55, telo: [[-2.05, .28], [2.0, .28], [2.05, .5], [1.97, .76], [.9, .86], [-1.9, .9], [-2.05, .7]], kab: [-1.6, .85, -1.2, .1, .86, 1.4] },
+};
+function modelVozu(t, barva) {
+  const g = new T.Group(), b = barva === undefined ? t.barva : barva, lak = mat(b, { roughness: 0.32, metalness: 0.35 });
+  const ext = (pts, sirka, m) => { const sh = new T.Shape(pts.map(p => new T.Vector2(p[0], p[1]))); const ge = new T.ExtrudeGeometry(sh, { depth: sirka, bevelEnabled: true, bevelSize: 0.05, bevelThickness: 0.05, bevelSegments: 2 }); ge.translate(0, 0, -sirka / 2); const me = new T.Mesh(ge, m); me.castShadow = true; g.add(me); return me; };
+  ext(t.telo, t.Wd - 0.1, lak);
+  if (t.kab) { const [x0, x1, tx0, tx1, y0, y1] = t.kab, wk = t.Wd - 0.34, hh = y1 - y0, i = 0.1, li = (a, b, k) => a + (b - a) * k;
+    ext([[x0, y0], [x1, y0], [tx1, y1], [tx0, y1]], wk, lak);
+    ext([[li(x0, tx0, i / hh) + 0.14, y0 + i], [li(x1, tx1, i / hh) - 0.2, y0 + i], [li(x1, tx1, 1 - i / hh) - 0.2, y1 - i + 0.03], [li(x0, tx0, 1 - i / hh) + 0.14, y1 - i + 0.03]], wk + 0.03, SKLO);
+    for (const [ax, bx, zn] of [[x1, tx1, 1], [x0, tx0, -1]]) { const len = Math.hypot(bx - ax, hh), m = new T.Mesh(new T.BoxGeometry(len - 0.16, 0.03, wk - 0.1), SKLO); m.position.set((ax + bx) / 2 + zn * hh / len * 0.075, (y0 + y1) / 2 + Math.abs(bx - ax) / len * 0.075 + 0.02, 0); m.rotation.z = Math.atan2(hh, bx - ax); g.add(m); } }
+  { const d = new T.Mesh(new T.BoxGeometry(t.L - 0.06, 0.16, t.Wd + 0.02), mat(0x1c1d20, { roughness: 0.8, metalness: 0 })); d.position.set(0, t.telo[0][1] + 0.07, 0); g.add(d);
+    for (const s of [1, -1]) { const z = new T.Mesh(new T.BoxGeometry(0.03, 0.11, 0.5), new T.MeshLambertMaterial({ color: 0xf4f2ea })); z.position.set(s * (t.L / 2 + 0.045), t.bus ? 0.7 : 0.45, 0); g.add(z); } }
+  for (const o of t.okna || []) { const m = new T.Mesh(new T.BoxGeometry(o[2], o[3], o[4]), SKLO); m.position.set(o[0], o[1], o[5]); m.rotation.z = o[6]; g.add(m); }
+  const box = (w, h, d, x, y, z, m) => { const me = new T.Mesh(new T.BoxGeometry(w, h, d), m); me.position.set(x, y, z); g.add(me); return me; };
+  const sv = new T.MeshBasicMaterial({ color: 0xfff1c4 }), zs = new T.MeshBasicMaterial({ color: 0xc9201c }), yh = t.bus ? 0.9 : 0.62;
+  for (const s of [-1, 1]) { box(0.06, 0.16, 0.34, t.L / 2 - 0.01, yh, s * (t.Wd / 2 - 0.36), sv); box(0.06, 0.14, 0.3, -t.L / 2 + 0.01, yh + 0.08, s * (t.Wd / 2 - 0.34), zs); }
+  if (t.policie) { box(t.L * 0.5, 0.16, t.Wd - 0.06, 0, 0.62, 0, mat(0x1d4c9e)); g.userData.majak = [box(0.26, 0.12, 0.5, -0.5, 1.56, -0.3, new T.MeshBasicMaterial({ color: 0x2f6fe0 })), box(0.26, 0.12, 0.5, -0.5, 1.56, 0.3, new T.MeshBasicMaterial({ color: 0x2f6fe0 }))]; }
+  if (t.bus) box(t.L - 0.3, 0.5, t.Wd - 0.04, 0, 1.05, 0, mat(0xeeeae0));
+  const r = t.bus ? 0.48 : 0.31, gk = new T.CylinderGeometry(r, r, 0.24, 14); gk.rotateX(Math.PI / 2);
+  g.userData.kola = [];
+  for (const [x, predni] of [[t.rozvor / 2, 1], [-t.rozvor / 2, 0]]) for (const s of [-1, 1]) { const piv = new T.Group(); piv.position.set(x, r, s * (t.Wd / 2 - 0.14)); const k = new T.Mesh(gk, GUMA); k.castShadow = true; piv.add(k); const pok = new T.Mesh(new T.CylinderGeometry(r * 0.55, r * 0.55, 0.26, 10).rotateX(Math.PI / 2), mat(0x9a9da2, { metalness: 0.6 })); piv.add(pok); g.add(piv); g.userData.kola.push({ piv, k, predni }); }
+  g.rotation.order = 'YZX';
+  return g;
+}
+const GEO = { trup: new T.BoxGeometry(0.26, 0.62, 0.44), hlava: new T.SphereGeometry(0.115, 10, 8), noha: new T.BoxGeometry(0.17, 0.84, 0.17), ruka: new T.BoxGeometry(0.12, 0.6, 0.12) };
+function modelPostavy(barva, kalhoty) {
+  const g = new T.Group(), m = new T.MeshLambertMaterial({ color: barva }), mk = new T.MeshLambertMaterial({ color: kalhoty || 0x2b2f3a }), kuze = new T.MeshLambertMaterial({ color: 0xe2b796 });
+  const trup = new T.Mesh(GEO.trup, m); trup.position.y = 1.14; trup.castShadow = true; g.add(trup);
+  const hl = new T.Mesh(GEO.hlava, kuze); hl.position.y = 1.6; g.add(hl);
+  g.userData.koncetiny = [];
+  for (const [z, y, geo, ma, faze] of [[0.11, 0.84, GEO.noha, mk, 0], [-0.11, 0.84, GEO.noha, mk, Math.PI], [0.28, 1.42, GEO.ruka, m, Math.PI], [-0.28, 1.42, GEO.ruka, m, 0]]) {
+    const piv = new T.Group(); piv.position.set(0, y, z); const me = new T.Mesh(geo, ma); me.position.y = -geo.parameters.height / 2; me.castShadow = true; piv.add(me); g.add(piv); g.userData.koncetiny.push([piv, faze]);
+  }
+  return g;
+}
+const hybej = (g, faze, sila) => { for (const [piv, f] of g.userData.koncetiny) piv.rotation.z = Math.sin(faze + f) * sila; };
+function usad(g, x, z, a, dy) { g.position.set(x, heightAt(x, z) + (dy || 0), z); g.rotation.y = -a; }
+function usadVuz(c) {
+  const t = c.t, ca = Math.cos(c.a), sa = Math.sin(c.a), hf = heightAt(c.x + ca * t.L * .4, c.z + sa * t.L * .4), hb = heightAt(c.x - ca * t.L * .4, c.z - sa * t.L * .4);
+  const hl = heightAt(c.x + sa * t.Wd * .5, c.z - ca * t.Wd * .5), hr = heightAt(c.x - sa * t.Wd * .5, c.z + ca * t.Wd * .5);
+  c.g.position.set(c.x, (hf + hb) / 2 + 0.02, c.z); c.g.rotation.set(Math.atan2(hr - hl, t.Wd) * -1, -c.a, Math.atan2(hf - hb, t.L * .8));
+  for (const k of c.g.userData.kola) { k.k.rotation.z -= (c.v || 0) * c.dtv / (t.bus ? 0.48 : 0.31); if (k.predni) k.piv.rotation.y = -(c.rizeni || 0); }
+}
+
+// ------------------------------------------------------------------ stav hry
+const hrac = { x: 0, z: 0, a: 0, hp: 100, vuz: null, faze: 0, g: null };
+const stav = { bezi: false, pripraveno: false, penize: 0, hledany: 0, ztracen: 0, chycen: 0, splneno: {}, mise: null, toastT: 0, t: 0 };
+const vozy = {}; let BOD = {}, provoz = [], chodci = [], policie = [], uzly = new Map(), useky = [];
+const kam = { yaw: 0, tazeno: -9, d: 6 };
+window.__hz = { hrac, vozy, stav, kam, get BOD() { return BOD; } };
+
+function pripravHru() {
+  BOD = W.mista;
+  const vuz = (id, typ, m, zam) => { const c = { id, typ, t: TYPY[typ], x: m.x, z: m.z, a: m.a, v: 0, rizeni: 0, dtv: 0, hp: TYPY[typ].hp, zamceno: zam, sx: m.x, sz: m.z, sa: m.a, g: modelVozu(TYPY[typ]) }; scene.add(c.g); usadVuz(c); vozy[id] = c; };
+  vuz('felicita', 'felicita', BOD.felicita, true); vuz('dodavka', 'dodavka', BOD.dodavka, true); vuz('manazerak', 'manazerak', BOD.manazerak, true);
+  hrac.g = modelPostavy(0xe2622e, 0x27324a); scene.add(hrac.g);
+  const nd = W.budovy.find(b => b.n && b.n.startsWith('NÁDRAŽÍ')).d; hrac.x = BOD.start.x; hrac.z = BOD.start.z; hrac.a = Math.atan2(nd.nz, nd.nx); kam.yaw = [Math.atan2(BOD.hospoda.z - hrac.z, BOD.hospoda.x - hrac.x), hrac.a + 1.57, hrac.a - 1.57, hrac.a + 3.14].find(y => !vBudove(hrac.x - Math.cos(y) * 4.5, hrac.z - Math.sin(y) * 4.5) && !vBudove(hrac.x - Math.cos(y) * 2.5, hrac.z - Math.sin(y) * 2.5)) || hrac.a;
+  for (const [n, barva] of [['HOSPODA', 0x3d6a8c], ['VEČERKA', 0xb0567a]]) { const d = W.budovy.find(b => b.n && b.n.startsWith(n)).d, g = modelPostavy(barva); usad(g, d.x - d.nz * 1.1 - d.nx * 0.6, d.z + d.nx * 1.1 - d.nz * 0.6, Math.atan2(d.nz, d.nx)); scene.add(g); }
+
+  // graf ulic
+  const kl = p => Math.round(p[0]) + ',' + Math.round(p[1]);
+  W.ulice.forEach(s => {
+    const d = [0]; for (let i = 1; i < s.p.length; i++) d.push(d[i - 1] + Math.hypot(s.p[i][0] - s.p[i - 1][0], s.p[i][1] - s.p[i - 1][1]));
+    const u = { p: s.p, d, len: d[d.length - 1], w: s.w, auto: s.a, a: kl(s.p[0]), b: kl(s.p[s.p.length - 1]) }; if (u.len < 2) return;
+    useky.push(u); for (const k of [u.a, u.b]) (uzly.get(k) || uzly.set(k, []).get(k)).push(u);
+  });
+  const autoUseky = useky.filter(u => u.auto && u.len > 25 && u.p.every(p => p[0] > 10 && p[0] < N - 10 && p[1] > 10 && p[1] < N - 10));
+  const BARVY = [0x6b7f9c, 0x9c4b45, 0xc9c4b5, 0x55606e, 0x8c7a4f, 0x3f5f7a, 0xd8d8d8, 0x2a2c33, 0x7d1f24, 0x4a6b55];
+  for (let i = 0; i < 16; i++) { const u = autoUseky[Math.floor(hash(i * 3 + 1) * autoUseky.length)], t = i === 0 ? TYPY.autobus : TYPY.civil; const a = { u, smer: hash(i) < .5 ? 1 : -1, s: hash(i + 9) * u.len, x: 0, z: 0, a: 0, v: 0, dtv: 0, t, g: modelVozu(t, i === 0 ? undefined : BARVY[i % BARVY.length]), auto: true }; scene.add(a.g); provoz.push(a); }
+  const sat = [0xc9a36b, 0x7d8fb3, 0xb36a6a, 0x6f9c7a, 0xa58bb8, 0xd0c9b8, 0x56657d, 0xb8894f];
+  const pesi = useky.filter(u => u.len > 15);
+  for (let i = 0; i < 34; i++) { const u = pesi[Math.floor(hash(i * 5 + 2) * pesi.length)]; const c = { u, smer: hash(i + 4) < .5 ? 1 : -1, s: hash(i + 2) * u.len, x: 0, z: 0, a: 0, v: 1.1 + hash(i) * 0.6, faze: i, lezi: 0, g: modelPostavy(sat[i % 8], [0x2b2f3a, 0x3a3f55, 0x4a4238][i % 3]) }; scene.add(c.g); chodci.push(c); }
+  krokSveta(0.001);
+}
+function bodNaUseku(u, s, strana, o) {
+  const d = u.d; let i = 1; while (i < d.length - 1 && d[i] < s) i++;
+  const a = u.p[i - 1], b = u.p[i], t = clamp((s - d[i - 1]) / (d[i] - d[i - 1] || 1), 0, 1), dx = b[0] - a[0], dz = b[1] - a[1], len = Math.hypot(dx, dz) || 1;
+  o.x = a[0] + dx * t - dz / len * strana; o.z = a[1] + dz * t + dx / len * strana; o.ta = Math.atan2(dz, dx); return o;
+}
+function dalsiUsek(o, jenAuto) {
+  const k = o.smer > 0 ? o.u.b : o.u.a, moznosti = (uzly.get(k) || []).filter(u => u !== o.u && (!jenAuto || u.auto));
+  if (!moznosti.length) { o.smer = -o.smer; return false; }
+  const n = moznosti[Math.floor(Math.random() * moznosti.length)]; o.u = n; o.smer = n.a === k ? 1 : -1; o.s = o.smer > 0 ? 0 : n.len; return true;
+}
+
+// ------------------------------------------------------------------ vstup
+const klavesy = new Set(), joy = { x: 0, y: 0, id: null }; let akceStisk = false;
+addEventListener('keydown', e => { if (!stav.bezi) return; const k = e.key.length === 1 ? e.key.toLowerCase() : e.key; if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(k)) e.preventDefault(); if ((k === 'e' || k === 'Enter' || k === ' ') && !e.repeat) akceStisk = true; klavesy.add(k); });
+addEventListener('keyup', e => klavesy.delete(e.key.length === 1 ? e.key.toLowerCase() : e.key));
+addEventListener('blur', () => klavesy.clear());
+function vstup() { let x = joy.x, y = joy.y; if (klavesy.has('ArrowLeft') || klavesy.has('a')) x -= 1; if (klavesy.has('ArrowRight') || klavesy.has('d')) x += 1; if (klavesy.has('ArrowUp') || klavesy.has('w')) y -= 1; if (klavesy.has('ArrowDown') || klavesy.has('s')) y += 1; const m = Math.hypot(x, y); return m > 1 ? { x: x / m, y: y / m } : { x, y }; }
+const joyEl = $('joy'), knob = $('joyKnob');
+const joyMove = e => { const r = joyEl.getBoundingClientRect(); let x = (e.clientX - (r.left + r.width / 2)) / (r.width * .38), y = (e.clientY - (r.top + r.height / 2)) / (r.height * .38); const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; } joy.x = x; joy.y = y; knob.style.transform = `translate(${x * 32}px, ${y * 32}px)`; };
+joyEl.addEventListener('pointerdown', e => { joy.id = e.pointerId; joyEl.setPointerCapture(e.pointerId); joyMove(e); e.preventDefault(); });
+joyEl.addEventListener('pointermove', e => { if (e.pointerId === joy.id) joyMove(e); });
+const joyEnd = e => { if (e.pointerId !== joy.id) return; joy.id = null; joy.x = joy.y = 0; knob.style.transform = ''; };
+joyEl.addEventListener('pointerup', joyEnd); joyEl.addEventListener('pointercancel', joyEnd);
+$('akce').addEventListener('click', () => { akceStisk = true; });
+let tah = null;
+platno.addEventListener('pointerdown', e => { tah = { id: e.pointerId, x: e.clientX }; platno.setPointerCapture(e.pointerId); });
+platno.addEventListener('pointermove', e => { if (tah && e.pointerId === tah.id) { kam.yaw = wrap(kam.yaw + (e.clientX - tah.x) * 0.006); tah.x = e.clientX; kam.tazeno = stav.t; } });
+const tahEnd = e => { if (tah && e.pointerId === tah.id) tah = null; }; platno.addEventListener('pointerup', tahEnd); platno.addEventListener('pointercancel', tahEnd);
+
+// ------------------------------------------------------------------ dialog, hlášky
+let fronta = [], poDialogu = null;
+function mluv(r, potom) { fronta = r.slice(); poDialogu = potom || null; dalsiReplika(); }
+function dalsiReplika() { if (!fronta.length) { $('dialog').hidden = true; const f = poDialogu; poDialogu = null; if (f) f(); return; } const [kdo, text] = fronta.shift(); $('dlgKdo').textContent = kdo; $('dlgText').textContent = text; $('dialog').hidden = false; }
+$('dlgDal').addEventListener('click', dalsiReplika);
+const vDialogu = () => !$('dialog').hidden;
+function toast(nadpis, pod, s = 3) { const el = $('toast'); el.textContent = nadpis; if (pod) { const sm = document.createElement('small'); sm.textContent = pod; el.appendChild(sm); } el.hidden = false; stav.toastT = s; }
+const kc = n => n.toLocaleString('cs-CZ').replace(/ /g, ' ') + ' Kč';
+
+// ------------------------------------------------------------------ mise
+const MISE = {
+  m1: { nazev: 'Návrat do Litovic', odmena: 500, kroky: [
+    { rekni: [['SMS · neznámé číslo', 'Vítej doma. Dlužíš 480 000 Kč. První splátka v pátek.'], ['Ty', 'Děda mi nechal barák v Litovicích a klíče má prý Standa. Ten bude touhle dobou v hospodě na náměstí.']] },
+    { jdi: 'hospoda', r: 3, pesky: true, text: 'Dojdi od nádraží do hospody Na Náměstí (sleduj minimapu)' },
+    { rekni: [['Standa', 'No to mě podrž, mladej je zpátky. Barák po dědovi stojí, ale střechou teče.'], ['Standa', 'Pěšky do Litovic nechoď. U parkoviště za zámkem stojí dědova Felicita, tady máš klíčky. Přivez ji sem, mrknu na ni.']], odemkni: 'felicita' },
+    { nastup: 'felicita', text: 'Najdi Felicitu u parkoviště za zámkem a nastup' },
+    { jdi: 'predHospodou', r: 9, vuz: 'felicita', text: 'Doval Felicitu před hospodu' },
+    { rekni: [['Standa', 'Jede, to je hlavní. Tady máš pětistovku na benzín.'], ['Standa', 'Kdybys chtěl přivýdělek, stav se u Jiřiny ve večerce. A ten chlap u baru se po tobě taky ptal.']] } ] },
+  m2: { nazev: 'Rozvoz pod pultem', odmena: 800, vuz: 'dodavka', kde: 'vecerka', limit: 170, kroky: [
+    { rekni: [['Paní Jiřina', 'Ty jsi ten od starého z Litovic? Potřebuju rozvézt tři balíčky. Neptej se, co v nich je.'], ['Paní Jiřina', 'Dodávka stojí venku u silnice. Do sedmi to musí být pryč.']], odemkni: 'dodavka' },
+    { nastup: 'dodavka', text: 'Nastup do dodávky u večerky', spustLimit: true },
+    { jdi: 'balik1', r: 9, vuz: 'dodavka', text: 'Balíček 1 ze 3: řadovky na západě' },
+    { jdi: 'balik2', r: 9, vuz: 'dodavka', text: 'Balíček 2 ze 3: ulice pod nádražím' },
+    { jdi: 'balik3', r: 9, vuz: 'dodavka', text: 'Balíček 3 ze 3: domky na jihu' },
+    { rekni: [['Paní Jiřina · telefon', 'Všechno došlo. Stav se pro peníze a vezmi si rohlík.']] } ] },
+  m3: { nazev: 'Manažerák pro Prahu', odmena: 3000, vuz: 'manazerak', kde: 'hospoda', kroky: [
+    { rekni: [['Chlap od baru', 'Standa říkal, že umíš řídit. U haly na východě stojí černý sedan. Majitel je do neděle v Dubaji.'], ['Chlap od baru', 'Doval ho do autodílny. Čistý. A bez ocasu, jasný?']], odemkni: 'manazerak' },
+    { nastup: 'manazerak', text: 'Seber černý sedan u haly na východě', hledany: 2 },
+    { jdi: 'dilna', r: 9, vuz: 'manazerak', bezPolicie: true, text: 'Setřes hlídku a doval sedan k autodílně' },
+    { rekni: [['Standa', 'Hezkej kousek. Do rána bude mít jiný značky a bude v Praze.']] } ] },
+};
+function resetVuz(id) { const c = vozy[id]; if (hrac.vuz === c) return; c.x = c.sx; c.z = c.sz; c.a = c.sa; c.v = 0; c.hp = c.t.hp; }
+function spustMisi(id) { if (MISE[id].vuz) resetVuz(MISE[id].vuz); stav.mise = { id, i: -1, limit: null }; dalsiKrok(); }
+function dalsiKrok() { const ms = stav.mise, m = MISE[ms.id]; ms.i++; if (ms.i >= m.kroky.length) return splnMisi(); const k = m.kroky[ms.i]; if (k.odemkni) vozy[k.odemkni].zamceno = false; if (k.rekni) mluv(k.rekni, dalsiKrok); }
+function splnMisi() {
+  const ms = stav.mise, m = MISE[ms.id]; let odmena = m.odmena, pozn = '';
+  if (ms.id === 'm3') { const c = vozy.manazerak, k = clamp(c.hp / c.t.hp, 0, 1); odmena = Math.round(m.odmena * (0.4 + 0.6 * k) / 50) * 50; if (k < 0.98) pozn = ' (sraženo za škody)'; }
+  stav.penize += odmena; stav.splneno[ms.id] = true; stav.mise = null; toast('Kšeft splněn', `${m.nazev} · +${kc(odmena)}${pozn}`, 4);
+}
+function zkazMisi(duvod) { if (!stav.mise) return; const m = MISE[stav.mise.id]; if (hrac.vuz && m.vuz && hrac.vuz.id === m.vuz) vystup(); if (m.vuz) { vozy[m.vuz].zamceno = true; resetVuz(m.vuz); } stav.mise = null; toast('Kšeft se nepovedl', duvod + ' Můžeš to zkusit znovu.', 4); }
+const dostupneMise = () => stav.splneno.m1 ? ['m2', 'm3'].filter(id => !stav.splneno[id]) : [];
+const pozice = () => hrac.vuz || hrac;
+function cil() {
+  const ms = stav.mise;
+  if (ms) { const k = MISE[ms.id].kroky[ms.i]; if (!k) return null; if (k.nastup) return vozy[k.nastup]; if (k.jdi) return BOD[k.jdi]; return null; }
+  const volne = dostupneMise(); if (!volne.length) return null; const p = pozice();
+  return volne.map(id => BOD[MISE[id].kde]).sort((a, b) => dist(a, p) - dist(b, p))[0];
+}
+function kontrolaMise(dt) {
+  const ms = stav.mise; if (!ms || vDialogu()) return; const m = MISE[ms.id], k = m.kroky[ms.i]; if (!k || k.rekni) return;
+  if (ms.limit !== null) { ms.limit -= dt; if (ms.limit <= 0) return zkazMisi('Došel čas.'); }
+  if (m.vuz && vozy[m.vuz].hp <= 0) return zkazMisi('Auto je na odpis.');
+  if (k.nastup) { if (hrac.vuz && hrac.vuz.id === k.nastup) { if (k.spustLimit) ms.limit = m.limit; if (k.hledany) { stav.hledany = Math.max(stav.hledany, k.hledany); stav.ztracen = 0; toast('Alarm!', 'Někdo volá městskou policii.', 2.5); } dalsiKrok(); } return; }
+  const c = cil(), p = pozice(); if (dist(c, p) > k.r) return;
+  if (k.pesky && hrac.vuz) return; if (k.vuz && (!hrac.vuz || hrac.vuz.id !== k.vuz)) return; if (k.bezPolicie && stav.hledany > 0) return; if (k.vuz && Math.abs(hrac.vuz.v) > 9) return;
+  dalsiKrok();
+}
+function vystup() { const c = hrac.vuz; if (!c) return; hrac.x = c.x + Math.sin(c.a) * 1.7; hrac.z = c.z - Math.cos(c.a) * 1.7; hrac.a = c.a; hrac.vuz = null; c.v = 0; vytlac(hrac, 0.4); hrac.g.visible = true; }
+function nabidka() {
+  if (hrac.vuz) { const c = hrac.vuz;
+    if (dist(c, BOD.dilna) < 12 && c.hp < c.t.hp && Math.abs(c.v) < 3) return { text: 'Opravit · 300 Kč', ok: stav.penize >= 300, fn() { stav.penize -= 300; c.hp = c.t.hp; toast('Opraveno', 'Standa to srovnal.', 2); } };
+    return { text: 'Vystoupit', ok: Math.abs(c.v) < 4, fn: vystup }; }
+  let nej = null, nd = 3.4; for (const c of Object.values(vozy)) { const d = dist(c, hrac); if (d < nd) { nd = d; nej = c; } }
+  if (nej) return nej.zamceno ? { text: 'Zamčeno', ok: false } : nej.hp <= 0 ? { text: 'Vrak', ok: false } : { text: 'Nastoupit', ok: true, fn() { hrac.vuz = nej; hrac.g.visible = false; } };
+  if (!stav.mise) for (const id of dostupneMise()) if (dist(hrac, BOD[MISE[id].kde]) < 3.2) return { text: 'Vzít kšeft', ok: true, fn: () => spustMisi(id) };
+  if (dist(hrac, BOD.hospoda) < 3.2) return { text: 'Pivo · 40 Kč', ok: stav.penize >= 40 && hrac.hp < 100, fn() { stav.penize -= 40; hrac.hp = Math.min(100, hrac.hp + 35); toast('Na zdraví', '+35 zdraví', 1.6); } };
+  if (dist(hrac, BOD.vecerka) < 3.2) return { text: 'Rohlík · 5 Kč', ok: stav.penize >= 5 && hrac.hp < 100, fn() { stav.penize -= 5; hrac.hp = Math.min(100, hrac.hp + 8); toast('Rohlík', '+8 zdraví', 1.4); } };
+  return null;
+}
+
+// ------------------------------------------------------------------ simulace
+function naraz(c, sila) { if (sila > 5) { c.hp = Math.max(0, c.hp - (sila - 5) * 3); if (hrac.vuz === c) hrac.hp = Math.max(5, hrac.hp - (sila - 5) * 0.8); } c.v *= -0.25; }
+function kolizeVozu(c) {
+  let hit = false; const ca = Math.cos(c.a), sa = Math.sin(c.a), o = c.t.L * 0.28;
+  for (const s of [1, -1]) { const b = { x: c.x + ca * o * s, z: c.z + sa * o * s }, bx = b.x, bz = b.z; if (vytlac(b, c.t.Wd * 0.5)) { c.x += b.x - bx; c.z += b.z - bz; hit = true; } }
+  return hit;
+}
+function ridit(c, inp, dt) {
+  const plyn = c.hp > 0 ? -inp.y : 0, t = c.t;
+  if (plyn > 0.1) c.v = c.v < -0.3 ? c.v + t.acc * 2.6 * dt : Math.min(t.vmax, c.v + t.acc * plyn * (1 - 0.55 * c.v / t.vmax) * dt);
+  else if (plyn < -0.1) c.v = c.v > 0.3 ? Math.max(0, c.v - 13 * dt) : Math.max(-6, c.v + t.acc * plyn * 0.8 * dt);
+  else { c.v -= Math.sign(c.v) * Math.min(Math.abs(c.v), (1.2 + Math.abs(c.v) * 0.12) * dt); }
+  const maxR = 0.6 * (1 - 0.72 * Math.min(1, Math.abs(c.v) / t.vmax));
+  c.rizeni += clamp(inp.x * maxR - c.rizeni, -2.8 * dt, 2.8 * dt);
+  c.a = wrap(c.a + c.v / t.rozvor * Math.tan(c.rizeni) * dt);
+  const kroky = Math.max(1, Math.ceil(Math.abs(c.v) * dt / 0.45)); let hit = false;
+  for (let i = 0; i < kroky; i++) { c.x += Math.cos(c.a) * c.v * dt / kroky; c.z += Math.sin(c.a) * c.v * dt / kroky; if (kolizeVozu(c)) { hit = true; break; } }
+  if (hit) naraz(c, Math.abs(c.v));
+}
+const tmp = {};
+function krokSveta(dt) {
+  stav.t += dt; if (stav.toastT > 0 && (stav.toastT -= dt) <= 0) $('toast').hidden = true;
+  const inp = stav.bezi ? vstup() : { x: 0, y: 0 };
+  for (const c of Object.values(vozy)) c.dtv = dt;
+  if (hrac.vuz) ridit(hrac.vuz, inp, dt);
+  else {
+    const m = Math.hypot(inp.x, inp.y);
+    if (m > 0.15) { const fx = Math.cos(kam.yaw), fz = Math.sin(kam.yaw), dx = fx * -inp.y - fz * inp.x, dz = fz * -inp.y + fx * inp.x; hrac.x += dx * 6 * dt; hrac.z += dz * 6 * dt; hrac.a = Math.atan2(dz, dx); hrac.faze += dt * 13 * m; hybej(hrac.g, hrac.faze, 0.75 * m); } else hybej(hrac.g, 0, 0);
+    vytlac(hrac, 0.4); usad(hrac.g, hrac.x, hrac.z, hrac.a);
+  }
+  for (const c of Object.values(vozy)) { if (c !== hrac.vuz && c.v) { c.v *= Math.max(0, 1 - 2.5 * dt); c.x += Math.cos(c.a) * c.v * dt; c.z += Math.sin(c.a) * c.v * dt; kolizeVozu(c); if (Math.abs(c.v) < 0.3) c.v = 0; } usadVuz(c); }
+  const p = pozice(), hv = hrac.vuz;
+
+  for (const a of provoz) {
+    a.dtv = dt; bodNaUseku(a.u, a.s, a.u.w > 4.5 ? 1.45 * a.smer : 0, tmp);
+    const ta = a.smer > 0 ? tmp.ta : tmp.ta + Math.PI; a.x += (tmp.x - a.x) * Math.min(1, 8 * dt); a.z += (tmp.z - a.z) * Math.min(1, 8 * dt); a.a += wrap(ta - a.a) * Math.min(1, 5 * dt);
+    const fx = Math.cos(ta), fz = Math.sin(ta), dosah = 7 + a.t.L / 2 + a.v * 0.6;
+    const stoji = o => { if (o === a) return false; const ox = o.x - a.x, oz = o.z - a.z, f = ox * fx + oz * fz; return f > 0 && f < dosah && Math.abs(ox * fz - oz * fx) < 1.9; };
+    const chce = stoji(p) || provoz.some(stoji) || policie.some(stoji) || Object.values(vozy).some(stoji) ? 0 : a.t.vmax * (a.u.w > 7 ? 1 : 0.7);
+    a.v += clamp(chce - a.v, -22 * dt, 3 * dt); a.s += a.v * dt * a.smer;
+    if (a.s > a.u.len || a.s < 0) { if (!dalsiUsek(a, true)) { a.s = clamp(a.s, 0, a.u.len); } else { bodNaUseku(a.u, a.s, 0, tmp); if (Math.hypot(tmp.x - a.x, tmp.z - a.z) > 30) { a.x = tmp.x; a.z = tmp.z; } } }
+    if (hv) { const r = 1.1 + a.t.L * 0.3, d = dist(a, hv); if (d < r + 1.1 && d > 0.01) { hv.x += (hv.x - a.x) / d * (r + 1.1 - d); hv.z += (hv.z - a.z) / d * (r + 1.1 - d); naraz(hv, Math.abs(hv.v) + a.v * 0.5); a.v = 0; } }
+    usadVuz(a);
+  }
+  for (const c of chodci) {
+    if (c.lezi > 0) { c.lezi -= dt; if (c.lezi <= 0) c.g.rotation.x = 0; continue; }
+    c.s += c.v * dt * c.smer; if (c.s > c.u.len || c.s < 0) { if (!dalsiUsek(c, false)) c.s = clamp(c.s, 0, c.u.len); }
+    bodNaUseku(c.u, c.s, (c.u.w / 2 + 1.0) * c.smer, tmp); c.x = tmp.x; c.z = tmp.z; c.a = c.smer > 0 ? tmp.ta : tmp.ta + Math.PI; c.faze += dt * 6 * c.v; hybej(c.g, c.faze, 0.5); usad(c.g, c.x, c.z, c.a);
+    if (hv && Math.abs(hv.v) > 5 && dist(c, hv) < 1.6) { c.lezi = 9; c.g.rotation.x = Math.PI / 2; c.g.position.y += 0.15; hv.v *= 0.6; stav.hledany = Math.min(3, stav.hledany + 1); stav.ztracen = 0; toast('Srazil jsi chodce', 'Někdo volá městskou policii.', 2.5); }
+  }
+  // policie
+  if (stav.hledany > 0 && policie.length < Math.min(2, stav.hledany)) {
+    const kandidati = useky.filter(u => u.auto && u.len > 20).map(u => u.p[Math.floor(u.p.length / 2)]).filter(q => { const d = Math.hypot(q[0] - p.x, q[1] - p.z); return d > 110 && d < 200 && q[0] > 20 && q[0] < N - 20 && q[1] > 20 && q[1] < N - 20; });
+    if (kandidati.length) { const q = kandidati[Math.floor(Math.random() * kandidati.length)], h = { x: q[0], z: q[1], a: Math.atan2(p.z - q[1], p.x - q[0]), v: 0, rizeni: 0, dtv: 0, t: TYPY.hlidka, g: modelVozu(TYPY.hlidka) }; scene.add(h.g); policie.push(h); }
+  }
+  let nejbliz = 1e9;
+  for (const h of policie) {
+    h.dtv = dt; const d = dist(h, p); nejbliz = Math.min(nejbliz, d);
+    if (stav.hledany > 0) { const chci = Math.atan2(p.z - h.z, p.x - h.x), dd = wrap(chci - h.a); h.a += clamp(dd, -1.5 * dt, 1.5 * dt) * Math.min(1, Math.abs(h.v) / 3 + 0.25); const chce = d < 5 ? 0 : h.t.vmax * (Math.abs(dd) > 1 ? 0.4 : 1) * (hv ? 1 : 0.5); h.v += clamp(chce - h.v, -20 * dt, h.t.acc * dt); }
+    else h.v *= Math.max(0, 1 - 2 * dt);
+    h.x += Math.cos(h.a) * h.v * dt; h.z += Math.sin(h.a) * h.v * dt; if (kolizeVozu(h)) h.v *= 0.6;
+    if (hv && d < 2.6 && d > 0.01) { hv.x += (hv.x - h.x) / d * (2.6 - d); hv.z += (hv.z - h.z) / d * (2.6 - d); hv.v *= 0.9; h.v *= 0.6; }
+    usadVuz(h); const bl = Math.floor(stav.t * 5) % 2 === 0 && !klid; h.g.userData.majak[0].material.color.setHex(bl ? 0x4f9bff : 0x1b3f8a); h.g.userData.majak[1].material.color.setHex(bl ? 0x8a1b1b : 0xff5252);
+  }
+  if (stav.hledany > 0) {
+    stav.ztracen = nejbliz > 150 ? stav.ztracen + dt : 0;
+    if (stav.ztracen > 10) { stav.hledany = 0; stav.ztracen = 0; toast('Setřásl jsi je', 'Hlídka to vzdala.', 2.5); }
+    stav.chycen = nejbliz < (hv ? 5.5 : 3.5) && (hv ? Math.abs(hv.v) < 3 : true) ? stav.chycen + dt : 0;
+    if (stav.chycen > 1.3) { const pokuta = Math.min(stav.penize, 200 * stav.hledany); stav.penize -= pokuta; stav.hledany = 0; stav.chycen = 0; stav.ztracen = 0; if (stav.mise && stav.mise.id !== 'm1') zkazMisi('Chytila tě hlídka.'); toast('Chytili tě', `Pokuta ${kc(pokuta)}. Příště zmiz z dohledu.`, 3.5); }
+  } else if (policie.length && nejbliz > 220) { for (const h of policie) scene.remove(h.g); policie = []; }
+  kontrolaMise(dt);
+}
+
+// ------------------------------------------------------------------ kamera, ukazatel cíle
+const paprsek = new T.Mesh(new T.CylinderGeometry(1, 1, 60, 20, 1, true), new T.MeshBasicMaterial({ color: 0xff9f43, transparent: true, opacity: 0.28, side: T.DoubleSide, depthWrite: false, fog: false })); paprsek.visible = false; scene.add(paprsek);
+function kameraKrok(dt) {
+  if (!stav.bezi) {                                   // úvodní přelet nad náměstím
+    const c = BOD.namesti, u = klid ? 0.6 : stav.t * 0.07, r = 250;
+    kamera.position.set(c.x + Math.cos(u) * r, heightAt(c.x, c.z) + 135, c.z + Math.sin(u) * r); kamera.lookAt(c.x, heightAt(c.x, c.z) + 5, c.z);
+    slunce.target.position.set(c.x, 0, c.z); slunce.position.copy(slunce.target.position).addScaledVector(SLUNCE, 200); return;
+  }
+  const p = pozice(), hv = hrac.vuz, bezTahu = stav.t - kam.tazeno > 1.6;
+  if (hv && bezTahu && Math.abs(hv.v) > 1) kam.yaw += wrap((hv.v > 0 ? hv.a : hv.a + Math.PI) - kam.yaw) * Math.min(1, 3 * dt);
+  else if (!hv && bezTahu) { const inp = vstup(); if (Math.abs(inp.x) > 0.2) kam.yaw = wrap(kam.yaw + inp.x * 1.6 * dt); }
+  const chciD = hv ? 6.2 + hv.t.L * 0.55 + Math.abs(hv.v) * 0.06 : 4.4, vyska = hv ? 2.5 + hv.t.L * 0.12 : 2.0, py = heightAt(p.x, p.z);
+  let d = chciD; const fx = Math.cos(kam.yaw), fz = Math.sin(kam.yaw);
+  for (let s = 1.2; s <= chciD; s += 0.6) if (vBudove(p.x - fx * s, p.z - fz * s)) { d = Math.max(1.2, s - 0.7); break; }
+  kam.d += (d - kam.d) * Math.min(1, (d < kam.d ? 14 : 3) * dt);
+  const kx = p.x - fx * kam.d, kz = p.z - fz * kam.d;
+  kamera.position.set(kx, Math.max(py + vyska, heightAt(kx, kz) + 0.8), kz); kamera.lookAt(p.x + fx * 4, py + 1.3, p.z + fz * 4);
+  slunce.target.position.set(p.x, py, p.z); slunce.position.copy(slunce.target.position).addScaledVector(SLUNCE, 200);
+  const c = cil(); paprsek.visible = !!c;
+  if (c) { const r = c.g ? 2.2 : (stav.mise && MISE[stav.mise.id].kroky[stav.mise.i].r) || 2.6; paprsek.position.set(c.x, heightAt(c.x, c.z) + 30, c.z); paprsek.scale.set(r, 1, r); paprsek.material.opacity = 0.22 + (klid ? 0 : Math.sin(stav.t * 4) * 0.08); }
+}
+
+// ------------------------------------------------------------------ HUD a minimapa
+let orthoImg = null; const mg = $('mapa').getContext('2d');
+function minimapa() {
+  const p = pozice(), R = 104, dosah = 120, k = R / dosah, ok = orthoImg.width / N;
+  mg.save(); mg.clearRect(0, 0, 208, 208); mg.beginPath(); mg.arc(R, R, R, 0, 7); mg.clip();
+  mg.fillStyle = '#39452f'; mg.fillRect(0, 0, 208, 208);
+  mg.drawImage(orthoImg, (p.x - dosah) * ok, (p.z - dosah) * ok, dosah * 2 * ok, dosah * 2 * ok, 0, 0, 208, 208);
+  mg.fillStyle = 'rgba(10,14,24,.25)'; mg.fillRect(0, 0, 208, 208);
+  const tecka = (o, barva, r, okraj) => { let dx = (o.x - p.x) * k, dz = (o.z - p.z) * k; const d = Math.hypot(dx, dz); if (d > R - 8) { if (!okraj) return; dx *= (R - 8) / d; dz *= (R - 8) / d; } mg.fillStyle = barva; mg.strokeStyle = '#14161a'; mg.lineWidth = 2; mg.beginPath(); mg.arc(R + dx, R + dz, r, 0, 7); mg.fill(); mg.stroke(); };
+  for (const h of policie) tecka(h, '#ee5d5d', 6, true);
+  if (!stav.mise) for (const id of dostupneMise()) tecka(BOD[MISE[id].kde], '#f4f2ea', 6, true);
+  const c = cil(); if (c) tecka(c, '#ff9f43', 8, true);
+  const a = hrac.vuz ? hrac.vuz.a : hrac.a; mg.translate(R, R); mg.rotate(a); mg.fillStyle = '#fff'; mg.strokeStyle = '#14161a'; mg.lineWidth = 2; mg.beginPath(); mg.moveTo(11, 0); mg.lineTo(-8, -7); mg.lineTo(-4, 0); mg.lineTo(-8, 7); mg.closePath(); mg.fill(); mg.stroke();
+  mg.restore();
+}
+function hud() {
+  $('hudPenize').textContent = kc(stav.penize); $('hudZdravi').style.width = hrac.hp + '%';
+  const hv = $('hudHledany'); hv.textContent = ''; for (let i = 0; i < 3; i++) { const s = document.createElement('span'); s.textContent = '★'; if (i >= stav.hledany) s.className = 'off'; hv.appendChild(s); }
+  const vz = $('hudVuz'); if (hrac.vuz) { vz.hidden = false; vz.textContent = `${hrac.vuz.t.nazev} · ${Math.round(Math.abs(hrac.vuz.v) * 3.6)} km/h · ${Math.round(hrac.vuz.hp / hrac.vuz.t.hp * 100)} %`; } else vz.hidden = true;
+  const lim = $('hudLimit'), ms = stav.mise; if (ms && ms.limit !== null) { lim.hidden = false; lim.textContent = '⏱ ' + Math.ceil(ms.limit) + ' s'; } else lim.hidden = true;
+  const uk = $('ukol'), b = document.createElement('b'); uk.textContent = '';
+  const c = cil(), vzd = c ? ` · ${Math.round(dist(c, pozice()))} m` : '';
+  if (ms) { const k = MISE[ms.id].kroky[ms.i]; b.textContent = MISE[ms.id].nazev.toUpperCase(); uk.append(b, document.createElement('br'), ((k && k.text) || '…') + vzd); }
+  else { b.textContent = 'VOLNÁ JÍZDA'; uk.append(b, document.createElement('br'), dostupneMise().length ? 'Kšefty čekají u večerky a v hospodě (bílé tečky na mapě)' : 'Všechny kšefty z ukázky máš hotové'); }
+  const n = vDialogu() ? null : nabidka(), tl = $('akce'); tl.textContent = n ? n.text : '—'; tl.disabled = !n || !n.ok; minimapa(); return n;
+}
+
+// ------------------------------------------------------------------ smyčka
+function velikost() { const r = platno.getBoundingClientRect(); if (!r.width) return; renderer.setPixelRatio(Math.min(devicePixelRatio || 1, r.width < 700 ? 1.5 : 1.75)); renderer.setSize(r.width, r.height, false); kamera.aspect = r.width / r.height; kamera.fov = r.width < r.height ? 72 : 58; kamera.updateProjectionMatrix(); }
+new ResizeObserver(velikost).observe(platno);
+let minule = 0, mereni = { n: 0, t: 0, hotovo: false };
+function snimek(t) {
+  const dt = Math.min(0.05, (t - minule) / 1000 || 0); minule = t;
+  if (stav.bezi && !mereni.hotovo) { mereni.n++; mereni.t += dt; if (mereni.t > 4) { mereni.hotovo = true; if (mereni.n / mereni.t < 26) { renderer.setPixelRatio(1); const r = platno.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); slunce.shadow.camera.right = slunce.shadow.camera.top = 55; slunce.shadow.camera.left = slunce.shadow.camera.bottom = -55; slunce.shadow.camera.updateProjectionMatrix(); scene.traverse(o => { if (o.isInstancedMesh) o.castShadow = false; }); } } }
+  if (stav.pripraveno && !document.hidden) {
+    if (!stav.bezi) { krokSveta(dt); }
+    else if (vDialogu()) { if (akceStisk) dalsiReplika(); }
+    else { krokSveta(dt); const n = hud(); if (akceStisk && n && n.ok && !vDialogu()) n.fn(); }
+    akceStisk = false; if (stav.bezi) hud(); kameraKrok(dt); renderer.render(scene, kamera);
+  }
+  requestAnimationFrame(snimek);
+}
+$('hrat').addEventListener('click', () => { $('start').hidden = true; $('hud').hidden = false; stav.bezi = true; spustMisi('m1'); });
+
+// ------------------------------------------------------------------ načtení
+Promise.all([
+  fetch('hostivice3d/world.json').then(r => { if (!r.ok) throw new Error('world.json ' + r.status); return r.json(); }),
+  new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ko(new Error('ortho.jpg')); i.src = 'hostivice3d/ortho.jpg'; }),
+]).then(([w, img]) => {
+  W = w; N = w.n; G = w.g; GN = N / G + 1; orthoImg = img;
+  const bin = atob(w.ter), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  const u16 = new Uint16Array(u8.buffer); H = new Float32Array(u16.length); for (let i = 0; i < u16.length; i++) H[i] = u16[i] / 100;
+  const tex = new T.Texture(img); tex.needsUpdate = true;
+  postavSvet(tex); pripravHru(); velikost();
+  stav.pripraveno = true; window.__hz.krok = krokSveta;
+  $('startNadpis').textContent = 'Osobák z Prahy právě odjel'; $('hrat').disabled = false;
+}).catch(e => chyba('Chybí data světa (' + e.message + '). Stránku je potřeba otevřít přes web, ne jako soubor z disku.'));
+requestAnimationFrame(snimek);
+})();
+</script>
